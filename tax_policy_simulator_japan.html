@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>あなたが政治家：君が救う○本の政治</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif}
+body{margin:0;background:#f4f6f8;color:#17202a}
+header{background:#182b49;color:#fff;padding:20px}
+h1{margin:0 0 6px;font-size:27px}.sub{opacity:.9}
+main{max-width:1120px;margin:20px auto;padding:0 14px}
+.card{background:#fff;border-radius:16px;padding:18px;box-shadow:0 4px 16px #0001;margin-bottom:16px}
+.tabs{display:flex;gap:8px;margin-bottom:16px}.tab{flex:1}.tab.active{background:#182b49}
+.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+.row{display:grid;grid-template-columns:1.25fr 1fr auto;gap:12px;align-items:center;margin:15px 0}
+input[type=range]{width:100%}input[type=number]{width:100%;box-sizing:border-box;padding:9px;border:1px solid #ccd3dc;border-radius:9px}
+button{border:0;border-radius:10px;padding:10px 14px;background:#2457d6;color:white;font-weight:700;cursor:pointer;margin:4px}
+button.secondary{background:#e8edf5;color:#182b49}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat div{padding:12px;background:#f7f8fa;border-radius:12px}
+.big{font-size:27px;font-weight:800}.badge{display:inline-block;padding:3px 8px;border-radius:99px;background:#e9eef7;font-size:12px}
+.note{font-size:13px;color:#5f6b78;line-height:1.55}
+.npc{padding:12px;background:#fafafa;border-radius:12px;margin:8px 0}
+.progress{height:10px;background:#e8ebef;border-radius:10px;overflow:hidden}.progress i{display:block;height:100%;background:#2457d6}
+.budget{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:9px 0}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:8px;border-bottom:1px solid #e5e8ec;text-align:left}
+.log{max-height:200px;overflow:auto;font-size:13px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr auto}}
+</style>
+</head>
+<body>
+<header style="position:relative">
+<div style="padding-right:190px">
+<h1>あなたが政治家：君が救う○本の政治</h1>
+<div class="sub">税を集め、日々の暮らしを見て、集めたお金を社会へ配分しよう。</div>
+</div>
+<button id="feedbackBtn" onclick="openFeedback()" style="position:absolute;right:20px;top:20px;background:#fff;color:#182b49;padding:10px 16px">💬 感想</button><button id="endRollBtn" onclick="openEndRoll()" style="position:absolute;right:20px;top:62px;background:#fff;color:#182b49;padding:10px 16px">🎬 エンドロール</button>
+</header>
+<main>
+<div class="tabs">
+<button id="tab1" class="tab active" onclick="showPage(1)">1：税金を集める</button>
+<button id="tab2" class="tab" onclick="showPage(2)">2：税金を使う</button>
+</div>
+
+<section id="page1">
+<div class="grid">
+<div class="card">
+<h2>🎮 政策設定</h2>
+<div class="row"><label>消費税<br><span class="badge">0～100%</span></label><input id="consumption" type="range" min="0" max="100" value="10"><b><span id="consumptionV">10</span>%</b></div>
+<div class="row"><label>政治家所得税<br><span class="badge">0～100%</span></label><input id="income" type="range" min="0" max="100" value="10"><b><span id="incomeV">10</span>%</b></div>
+<div class="row"><label>法人税（ゲーム用）<br><span class="badge">0～100%</span></label><input id="corporate" type="range" min="0" max="100" value="20"><b><span id="corporateV">20</span>%</b></div>
+<div class="row"><label>政治家特別課税<br><span class="badge">無制限</span></label><input id="politician" type="number" min="0" step="10000" value="0"><b>円/人</b></div>
+<div class="row"><label>海外来訪者の観光税<br><span class="badge">無制限</span></label><input id="visitor" type="number" min="0" step="100" value="1000"><b>円/人・日</b></div>
+<button onclick="advanceDay()">▶ 1日進める</button>
+<button onclick="advanceDays(7)" class="secondary">7日進める</button>
+<button onclick="advanceDays(30)" class="secondary">30日進める</button>
+<button onclick="resetGame()" class="secondary">リセット</button>
+<p class="note">日が進むたびに、政治家NPCの生活費に消費税を適用し、訪日外客NPCが入国・滞在して観光税を支払います。</p>
+</div>
+
+<div class="card">
+<h2>📅 ゲーム時間</h2>
+<div class="big">ゲーム開始から <span id="day">1</span> 日目</div>
+<p>経過年：<span id="year">1</span>年目</p>
+<div class="stat">
+<div><small>税収累計</small><div class="big" id="revenue">¥0</div></div>
+<div><small>支持率</small><div class="big" id="support">60%</div></div>
+<div><small>経済活力</small><div class="big" id="economy">70</div></div>
+<div><small>公共サービス</small><div class="big" id="service">60</div></div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2>🏛️ 政治家NPCの収入・支出</h2>
+<div class="grid">
+<div>
+<div class="npc"><b>国会議員：713人</b><br><small>衆議院465人＋参議院248人</small></div>
+<div class="stat">
+<div><small>モデル年収（歳費）</small><div id="salaryYear">¥15,528,000</div></div>
+<div><small>モデル月収</small><div id="salaryMonth">¥1,294,000</div></div>
+<div><small>特別手当（期末手当等・モデル）</small><div id="specialAllowance">¥0/年</div></div>
+<div><small>1人あたり年間生活消費</small><div id="foodYear">¥2,400,000</div></div>
+</div>
+</div>
+<div>
+<h3>本日の平均的な食事代</h3>
+<div class="big" id="foodDay">¥6,000</div>
+<p>食事代に消費税 <b id="foodTaxRate">10%</b> → 税額 <b id="foodTaxDay">¥600</b>/日・人</p>
+<p>政治家全員からの本日食事消費税：<b id="foodTaxAll">¥427,800</b></p>
+<p class="note">政治家の食事代はゲーム用モデルです。実際の政治家個人の食費統計を意味しません。</p>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2>🧳 海外来訪者</h2>
+<div class="stat">
+<div><small>年間参考訪日外客数</small><div class="big">42,683,600人</div></div>
+<div><small>ゲーム内の日平均入国者</small><div class="big" id="dailyVisitors">116,941人</div></div>
+<div><small>現在の滞在中NPC</small><div class="big" id="activeVisitors">116,941人</div></div>
+<div><small>本日の観光税</small><div class="big" id="tourismTaxToday">¥116,941,000</div></div>
+</div>
+<p class="note">2025年の年間訪日外客数42,683,600人を365日で割った簡易モデルです。実際の月別変動や個人ごとの滞在日数は再現していません。</p>
+</div>
+
+<div class="grid">
+<div class="card"><h2>💬 国民の声</h2><p id="citizenVoice">ゲームを進めると、さまざまな国民の声が届きます。</p></div>
+<div class="card"><h2>📰 今日のニュース</h2><p id="currentNews">現在、大きなニュースはありません。</p></div>
+</div>
+
+<div class="card">
+<h2>📚 今日の税金の動き</h2>
+<table><tr><th>項目</th><th>本日の税収</th><th>累計</th></tr>
+<tr><td>政治家の食事等の消費税</td><td id="todayFoodTax">¥0</td><td id="cumFoodTax">¥0</td></tr>
+<tr><td>政治家所得税</td><td id="todayIncomeTax">¥0</td><td id="cumIncomeTax">¥0</td></tr>
+<tr><td>政治家特別課税</td><td id="todaySpecialTax">¥0</td><td id="cumSpecialTax">¥0</td></tr>
+<tr><td>海外来訪者観光税</td><td id="todayTourismTax">¥0</td><td id="cumTourismTax">¥0</td></tr>
+<tr><td>その他ゲーム内税収</td><td id="todayOtherTax">¥0</td><td id="cumOtherTax">¥0</td></tr></table>
+</div>
+</section>
+
+<section id="page2" style="display:none">
+<div class="card"><h2>🗳️ 次の選挙</h2>
+<p id="electionStatus">次の選挙まであと99日</p>
+<p class="note">100日ごとに選挙が行われます。支持率50%以上で当選です。<br>支持率は政策・ニュース・長期効果によって<strong>大きく変動</strong>します。</p></div>
+
+<div class="card" id="politicianEvaluation"><h2>🏛️ あなたの政治家としての評価</h2><div id="evaluationGrade" style="font-size:36px;font-weight:800">C 評価</div><p id="evaluationScore" class="note">評価点：60 / 100</p><p id="evaluationText">税収・支持率・経済・公共サービス・予算配分から評価します。</p></div>
+<div class="card" id="longTermStats"><h2>📈 長期的な社会の状態</h2>
+<div class="stat">
+<div><small>国民幸福度</small><div class="big" id="happiness">60</div></div>
+<div><small>政治への信頼</small><div class="big" id="trust">60</div></div>
+</div>
+<p class="note">予算の効果はすぐには現れません。時間をかけて社会の状態が変化します。</p>
+</div>
+
+<div class="card">
+<h2>💰 2：集めた税金を社会へ配分する</h2>
+<p>税収累計：<span class="big" id="budgetTotal">¥0</span></p>
+<p>まだ配分していないお金：<span class="big" id="budgetLeft">¥0</span></p>
+<p class="note">各項目へ自由に金額を配分できます。配分した金額は、その項目の「公共サービス効果」と支持率に反映されます。<br>配分先：社会保障・医療・教育・防災・インフラ・子育て・観光・地域振興・軍事費・政治家に配分・外国人に配分。いずれもゲーム上の政策選択です。</p>
+<div id="budgets"></div>
+<button onclick="allocateAllEvenly()">均等配分</button>
+<button onclick="clearAllocations()" class="secondary">配分をリセット</button>
+</div>
+<div class="card">
+<h2>📊 配分後の社会</h2>
+<div class="stat">
+<div><small>社会保障</small><div class="big" id="eff-welfare">0</div></div>
+<div><small>医療</small><div class="big" id="eff-medical">0</div></div>
+<div><small>教育</small><div class="big" id="eff-education">0</div></div>
+<div><small>防災・インフラ</small><div class="big" id="eff-infra">0</div></div>
+<div><small>子育て</small><div class="big" id="eff-child">0</div></div>
+<div><small>観光・地域振興</small><div class="big" id="eff-tourism">0</div></div>
+<div><small>軍事費</small><div class="big" id="eff-defense">0</div></div>
+<div><small>政治家に配分</small><div class="big" id="eff-politicianBudget">0</div></div>
+<div><small>外国人に配分</small><div class="big" id="eff-foreignSupport">0</div></div>
+</div>
+<p id="allocationFeedback" class="note">まず1ページで税金を集めてください。</p>
+</div>
+</section>
+
+<div class="card">
+<h2>📝 政策ログ</h2><div id="log" class="log"><p>ゲーム開始。</p></div>
+</div>
+
+<div id="endRollModal" style="display:none;position:fixed;inset:0;background:#0008;z-index:21;align-items:center;justify-content:center"><div style="background:white;border-radius:16px;padding:24px;width:min(760px,calc(100% - 36px));max-height:82vh;overflow:auto;box-shadow:0 10px 40px #0005"><div style="display:flex;justify-content:space-between;align-items:center"><h2>🎬 エンドロール</h2><button class="secondary" onclick="closeEndRoll()">閉じる</button></div><div style="line-height:1.9;font-size:15px"><p>このゲームを遊んでくださりありがとうございます。</p><p>時にあなたは選挙に行っていますか？</p><p>私は行っていません。なぜなら今まで不満がなかったからです。</p><p>ですが今回このようなゲームを作りました。それは不満が出てきました。</p><p>私の家の近くに小学生が集団下校していて今日も平和だと思っていたのですが、見知らぬ言語で小学生に接近する外国人がいました。</p><p>私はチャリで突っ込んでやろうかと思いましたが日本には大義名分でぶん殴れる正当防衛は機能しません。</p><p>周りに車と大人が多かったので何も起きませんでしたが……</p><p>こんなのがあったので私は初めて選挙に行き、朝のニート散歩で小学生を守れる知識と筋肉だけは付けようと思いました。</p><p>あなたは今の現状を自分の目で見て何を考えますか？</p><p>もう一度言いましょうか？私は純粋無垢な「日本の血がめぐる」子どもは「日本の宝」です。</p><p>私みたいなゴミは政治に利用されてもいいてかニートだしでも彼ら達だけは守らなければならない。</p></div></div></div>
+<div id="feedbackModal" style="display:none;position:fixed;inset:0;background:#0008;z-index:20;align-items:center;justify-content:center">
+<div style="background:white;border-radius:16px;padding:22px;width:min(520px,calc(100% - 36px));box-shadow:0 10px 40px #0005">
+<h2>💬 ゲームの感想</h2>
+<p class="note">ゲームを遊んだ感想や、追加してほしい機能を書いてください。</p>
+<textarea id="feedbackText" maxlength="2000" placeholder="ここに感想を書いてください…" style="width:100%;height:180px;box-sizing:border-box;padding:12px;border:1px solid #ccd3dc;border-radius:10px;resize:vertical"></textarea>
+<div style="text-align:right;margin-top:12px">
+<button class="secondary" onclick="closeFeedback()">閉じる</button>
+<button class="secondary" onclick="saveFeedback()">感想を保存</button>
+<button onclick="sendFeedback()">✉️ 制作者へ送る</button>
+</div>
+<p id="feedbackSaved" class="note" style="display:none">このブラウザに感想を保存しました。</p>
+<p class="note">「制作者へ送る」は端末のメールアプリを開いて送信します。</p>
+</div>
+</div>
+</main>
+<script>
+const DATA={politicians:713,visitorsYear:42683600,days:365,monthlySalary:1294000,annualSalary:15528000,
+allowanceAnnual:0,foodDaily:6000};
+const categories=[
+["welfare","社会保障","年金・介護など"],
+["medical","医療","医療体制・公衆衛生"],
+["education","教育","学校・研究・学習支援"],
+["infra","防災・インフラ","道路・水道・防災など"],
+["child","子育て","保育・子育て支援"],
+["tourism","観光・地域振興","観光・地域経済"],
+["defense","軍事費","防衛・安全保障など"],
+["politicianBudget","政治家に配分","政治活動・議員活動など"],
+["foreignSupport","外国人に配分","外国人向けの生活・支援施策など"]
+];
+let s={day:1,revenue:0,support:60,economy:70,service:60,happiness:60,trust:60,currentNews:null,electionResult:null,
+foodTax:0,incomeTax:0,specialTax:0,tourismTax:0,otherTax:0,alloc:{}};
+categories.forEach(x=>s.alloc[x[0]]=0);
+
+function yen(n){return "¥"+Math.round(n).toLocaleString("ja-JP")}
+function val(id){return +document.getElementById(id).value}
+function syncLabels(){
+ document.getElementById("consumptionV").textContent=val("consumption");
+ document.getElementById("incomeV").textContent=val("income");
+ document.getElementById("corporateV").textContent=val("corporate");
+}
+["consumption","income","corporate"].forEach(id=>document.getElementById(id).addEventListener("input",syncLabels));
+
+
+
+const citizenVoices=[
+ ["会社員","税金は負担だけど、生活が良くなるなら納得できます。"],
+ ["学生","教育にもっと予算を使ってほしいです。"],
+ ["子育て世帯","子育て支援が増えると助かります。"],
+ ["高齢者","医療や介護を大切にしてほしいです。"],
+ ["自営業","景気を悪くしない税制にしてほしいです。"],
+ ["観光業","観光客が増えるのは嬉しいですが、地域への還元も必要です。"],
+ ["防災担当者","災害はいつ起きるか分かりません。備えは大切です。"]
+];
+const newsEvents=[
+ {title:"物価が上昇",text:"生活必需品の価格が上昇。家計への負担が心配されています。",
+  effect:{economy:-4,happiness:-2,support:-2}},
+ {title:"大規模な地震",text:"大規模な地震が発生。防災への備えが問われています。",
+  effect:{}},
+ {title:"観光客が過去最高",text:"海外からの観光客が急増。観光地は活況ですが混雑も増えています。",
+  effect:{economy:3,support:1}},
+ {title:"景気回復の兆し",text:"企業活動と消費が活発になっています。",
+  effect:{economy:5,support:2}},
+ {title:"少子化が進行",text:"出生数の減少が続き、子育て政策への注目が高まっています。",
+  effect:{happiness:-2,support:-2}},
+ {title:"医療現場から要望",text:"医療現場から人材・設備への支援を求める声が上がっています。",
+  effect:{happiness:-1,support:-1}}
+];
+
+function showCitizenVoice(){
+ const v=citizenVoices[Math.floor(Math.random()*citizenVoices.length)];
+ const el=document.getElementById("citizenVoice");
+ if(el) el.innerHTML="💬 <b>"+v[0]+"の声：</b>「"+v[1]+"」";
+}
+
+function triggerNews(){
+ if(s.day<2 || s.day%7!==0) return;
+ const n=newsEvents[Math.floor(Math.random()*newsEvents.length)];
+ s.currentNews=n;
+ // ニュース効果は「今回の1日分の結果」に加算し、通常計算で上書きしない。
+ if(n.effect){
+   s.economy=Math.max(0,Math.min(100,s.economy+(n.effect.economy||0)));
+   s.happiness=Math.max(0,Math.min(100,s.happiness+(n.effect.happiness||0)));
+   s.support=Math.max(0,Math.min(100,s.support+(n.effect.support||0)));
+ }
+ // 地震は防災予算の累積比率によって被害を軽減。
+ if(n.title==="大規模な地震"){
+   const infra=s.alloc?.infra||0;
+   const ratio=s.revenue>0?infra/s.revenue:0;
+   const damage=ratio>=0.20?1:ratio>=0.10?3:6;
+   s.happiness=Math.max(0,s.happiness-damage);
+   s.support=Math.max(0,s.support-(damage>=5?3:damage>=3?1:0));
+   addLog("🛡️ 防災予算の効果：被害 "+(damage<=1?"は小さく抑えられました。":damage<=3?"をある程度抑えました。":"が拡大しました。"));
+ }
+ addLog("📰 "+n.title+"： "+n.text);
+}
+
+function updateLongTermEffects(){
+ const a=s.alloc||{}, total=Math.max(1,s.revenue);
+ const share=k=>(a[k]||0)/total;
+ // 予算配分の効果は小さく積み上げ、1日ごとの変化が大きくなりすぎないようにする。
+ s.happiness=Math.max(0,Math.min(100,s.happiness+
+   share("welfare")*.05+share("medical")*.04+share("education")*.04+share("child")*.06+
+   share("infra")*.02+share("tourism")*.02-share("politicianBudget")*.05));
+ s.trust=Math.max(0,Math.min(100,s.trust+
+   share("education")*.02+share("welfare")*.02+share("infra")*.015-
+   share("politicianBudget")*.04));
+ s.economy=Math.max(0,Math.min(100,s.economy+
+   share("education")*.02+share("infra")*.025+share("tourism")*.015-
+   share("politicianBudget")*.015));
+ if(s.day%30===0){
+   s.service=Math.max(0,Math.min(100,s.service+
+     share("medical")*1.2+share("education")*.8+share("infra")*1.0+share("welfare")*.9));
+   addLog("📈 30日間の政策効果が反映されました。公共サービスが更新されました。");
+ }
+}
+
+function electionCheck(){
+ if(s.day<100 || s.day%100!==0) return;
+ const ev=getPolicyEvaluation();
+ const passed=s.support>=50;
+ s.electionResult=passed?"当選":"落選";
+ addLog("🗳️ "+s.day+"日目・選挙："+(passed?"当選！":"落選……")+" 総合評価 "+ev.grade+"（"+ev.score+"点）");
+ // 当選は次の任期へ。落選しても即ゲームオーバーにはせず、次の100日を再挑戦できる。
+ if(passed) s.support=Math.min(100,s.support+5);
+ else s.support=Math.max(0,s.support-5);
+}
+
+function getPolicyEvaluation(){
+ const allocated=Object.values(s.alloc||{}).reduce((a,b)=>a+b,0);
+ const ratio=s.revenue>0?Math.min(1,allocated/s.revenue):0;
+ const score=Math.round(Math.max(0,Math.min(100,
+   s.support*.30+s.economy*.20+s.service*.20+s.happiness*.12+s.trust*.08+ratio*10
+ )));
+ let grade=score>=90?"S":score>=80?"A":score>=70?"B":score>=60?"C":score>=45?"D":"E";
+ return {score,grade};
+}
+
+function updatePoliticalEvaluation(){
+ const ev=getPolicyEvaluation();
+ const g=document.getElementById("evaluationGrade");
+ const sc=document.getElementById("evaluationScore");
+ const tx=document.getElementById("evaluationText");
+ if(g) g.textContent=ev.grade+" 評価";
+ if(sc) sc.textContent="評価点："+ev.score+" / 100";
+ if(tx) tx.textContent="支持率 "+Math.round(s.support)+"% ／ 経済活力 "+Math.round(s.economy)+" ／ 公共サービス "+Math.round(s.service)+" ／ 国民幸福度 "+Math.round(s.happiness)+" ／ 政治信頼 "+Math.round(s.trust);
+}
+
+function updateElectionUI(){
+ const el=document.getElementById("electionStatus");
+ if(!el)return;
+ const remain=100-(s.day%100);
+ el.textContent=s.electionResult
+   ? "直近の選挙結果："+s.electionResult+" ／ 次の選挙まであと "+remain+"日"
+   : "次の選挙まであと "+remain+"日";
+}
+
+function showNews(){
+ const el=document.getElementById("currentNews");
+ if(!el)return;
+ el.innerHTML=s.currentNews?("📰 <b>"+s.currentNews.title+"</b><br>"+s.currentNews.text):"📰 現在、大きなニュースはありません。";
+}
+
+
+
+function updateSupportRate(){
+  const c=Number(val("consumption")), inc=Number(val("income"));
+  const corp=Number(val("corporate")), special=Number(val("politician"));
+  const visitor=Number(val("visitor"));
+  let delta=0;
+
+  // Tax burden: voters react strongly when rates move far from moderate levels.
+  delta += (10-c)*0.55;
+  delta += (10-inc)*0.18;
+  delta += (20-corp)*0.12;
+
+  // Special tax on politicians is popular, while excessive political allocation hurts trust.
+  delta += Math.min(12, special/500000);
+  const totalAlloc=Object.values(s.alloc||{}).reduce((a,b)=>a+b,0);
+  const politicalShare=s.revenue>0 ? (s.alloc?.politicianBudget||0)/s.revenue : 0;
+  delta -= politicalShare*35;
+
+  // Public-service and long-term indicators.
+  delta += (s.service-60)*0.10;
+  delta += (s.happiness-60)*0.16;
+  delta += (s.trust-60)*0.14;
+  delta += (s.economy-70)*0.08;
+
+  // Visitor tax has diminishing popularity cost, avoiding unlimited linear swings.
+  delta -= Math.min(8, visitor/2500);
+
+  // Strong event/news reactions are intentionally amplified.
+  if(s.currentNews){
+    if(s.currentNews.title==="物価が上昇") delta-=3;
+    if(s.currentNews.title==="景気回復の兆し") delta+=4;
+    if(s.currentNews.title==="大規模な地震"){
+      const infra=s.alloc?.infra||0;
+      const ratio=s.revenue>0?infra/s.revenue:0;
+      delta += ratio>=0.20 ? 5 : ratio>=0.10 ? 1 : -7;
+    }
+    if(s.currentNews.title==="少子化が進行"){
+      const child=s.alloc?.child||0;
+      const ratio=s.revenue>0?child/s.revenue:0;
+      delta += ratio>=0.15 ? 3 : -4;
+    }
+  }
+
+  // Amplifier makes meaningful policy changes visible instead of tiny 0.x% movements.
+  delta*=1.35;
+
+  // Small uncertainty keeps repeated plays from becoming identical.
+  delta += (Math.random()-0.5)*2.4;
+
+  s.support=Math.max(0,Math.min(100,s.support+delta));
+}
+
+function advanceDays(n){for(let i=0;i<n;i++) advanceDay(true); render(); updatePoliticalEvaluation(); updateElectionUI(); showNews(); addLog(n+"日進めました。");}
+function advanceDay(silent=false){
+ const c=val("consumption"), inc=val("income"), corp=val("corporate");
+ const special=val("politician"), visitorTax=val("visitor");
+ const dailyVisitors=DATA.visitorsYear/DATA.days;
+ const foodTax=DATA.politicians*DATA.foodDaily*(c/100);
+ const incomeTax=DATA.politicians*DATA.monthlySalary*12/365*(inc/100);
+ const specialTax=DATA.politicians*special/365;
+ const tourismTax=dailyVisitors*visitorTax;
+ const otherTax=(10000000000000/365)*(c/100)+(8000000000000/365)*(corp/100);
+ s.day++; s.foodTax+=foodTax;s.incomeTax+=incomeTax;s.specialTax+=specialTax;s.tourismTax+=tourismTax;s.otherTax+=otherTax;
+ s.revenue=s.foodTax+s.incomeTax+s.specialTax+s.tourismTax+s.otherTax;
+  updateLongTermEffects();
+  triggerNews();
+  updateSupportRate();
+  showCitizenVoice();
+  electionCheck();const burden=(c-10)*.25+(inc-10)*.12+(corp-20)*.10+Math.min(30,special/1000000)*.12+Math.min(30,visitorTax/10000)*.06;
+ s.economy=Math.max(0,Math.min(100,70-burden));
+ s.service=Math.max(0,Math.min(100,50+s.revenue/250000000000));
+ const allocated=Object.values(s.alloc).reduce((a,b)=>a+b,0);
+ const allocationBonus=Math.min(15,allocated/100000000000);
+ s.support=Math.max(0,Math.min(100,60+(s.service-60)*.4+allocationBonus-burden*.5));
+ if(!silent) addLog("1日経過：食事への消費税と観光税を含め、税収が増えました。");
+ render();
+}
+function updatePoliticianEvaluation(){const a=Object.values(s.alloc||{}).reduce((x,y)=>x+y,0),r=Math.max(0,s.revenue),ar=r?Math.min(1,a/r):0,score=Math.round(Math.max(0,Math.min(100,(s.support||0)*.30+(s.economy||0)*.25+(s.service||0)*.20+ar*15+Math.min(100,s.economy||0)*.10)));let g="C",t="まずまずの政治運営です。政策の優先順位を見直してみましょう。";if(score>=90){g="S";t="非常に優秀な政治運営です。"}else if(score>=80){g="A";t="優秀な政治運営です。"}else if(score>=70){g="B";t="良い政治運営です。"}else if(score<60){g=score>=45?"D":"E";t="政治運営に課題があります。税制と予算配分を見直しましょう。"}document.getElementById("evaluationGrade").textContent=g+" 評価";document.getElementById("evaluationScore").textContent="評価点："+score+" / 100";document.getElementById("evaluationText").textContent=t;}
+function openEndRoll(){document.getElementById("endRollModal").style.display="flex";}
+function closeEndRoll(){document.getElementById("endRollModal").style.display="none";}
+function render(){
+ const c=val("consumption");
+ document.getElementById("day").textContent=s.day.toLocaleString();
+ document.getElementById("year").textContent=(Math.floor((s.day-1)/365)+1);
+ document.getElementById("revenue").textContent=yen(s.revenue);
+ document.getElementById("support").textContent=Math.round(s.support)+"%";
+ document.getElementById("economy").textContent=Math.round(s.economy);
+ document.getElementById("service").textContent=Math.round(s.service);
+ document.getElementById("happiness").textContent=Math.round(s.happiness);
+ document.getElementById("trust").textContent=Math.round(s.trust);
+ updateElectionUI(); showNews();
+ document.getElementById("foodTaxRate").textContent=c+"%";
+ document.getElementById("foodDay").textContent=yen(DATA.foodDaily);
+ document.getElementById("foodTaxDay").textContent=yen(DATA.foodDaily*c/100);
+ document.getElementById("foodTaxAll").textContent=yen(DATA.politicians*DATA.foodDaily*c/100);
+ document.getElementById("dailyVisitors").textContent=Math.round(DATA.visitorsYear/365).toLocaleString()+"人";
+ document.getElementById("activeVisitors").textContent=Math.round(DATA.visitorsYear/365).toLocaleString()+"人";
+ document.getElementById("tourismTaxToday").textContent=yen(DATA.visitorsYear/365*val("visitor"));
+ document.getElementById("salaryYear").textContent=yen(DATA.annualSalary);
+ document.getElementById("salaryMonth").textContent=yen(DATA.monthlySalary);
+ document.getElementById("specialAllowance").textContent=yen(DATA.allowanceAnnual)+"/年";
+ const today=s.day===1?0:1;
+ document.getElementById("todayFoodTax").textContent=yen(DATA.politicians*DATA.foodDaily*c/100);
+ document.getElementById("todayIncomeTax").textContent=yen(DATA.politicians*DATA.monthlySalary*12/365*(val("income")/100));
+ document.getElementById("todaySpecialTax").textContent=yen(DATA.politicians*val("politician")/365);
+ document.getElementById("todayTourismTax").textContent=yen(DATA.visitorsYear/365*val("visitor"));
+ document.getElementById("todayOtherTax").textContent=yen((10000000000000/365)*(c/100)+(8000000000000/365)*(val("corporate")/100));
+ document.getElementById("cumFoodTax").textContent=yen(s.foodTax);
+ document.getElementById("cumIncomeTax").textContent=yen(s.incomeTax);
+ document.getElementById("cumSpecialTax").textContent=yen(s.specialTax);
+ document.getElementById("cumTourismTax").textContent=yen(s.tourismTax);
+ document.getElementById("cumOtherTax").textContent=yen(s.otherTax);
+ renderBudgets();
+ updatePoliticianEvaluation();
+ updatePoliticalEvaluation(); updateElectionUI(); showNews();}
+function renderBudgets(){
+ const left=Math.max(0,s.revenue-Object.values(s.alloc).reduce((a,b)=>a+b,0));
+ document.getElementById("budgetTotal").textContent=yen(s.revenue);
+ document.getElementById("budgetLeft").textContent=yen(left);
+ const box=document.getElementById("budgets");
+ box.innerHTML="";
+ categories.forEach(([id,name,desc])=>{
+  const div=document.createElement("div");div.className="budget";
+  div.innerHTML=`<label><b>${name}</b><br><small>${desc}</small></label><input type="number" min="0" step="1000000" value="${Math.round(s.alloc[id])}" data-cat="${id}">`;
+  const input=div.querySelector("input");
+  input.addEventListener("change",()=>{let used=Object.values(s.alloc).reduce((a,b)=>a+b,0)-s.alloc[id];let x=Math.max(0,+input.value);s.alloc[id]=Math.min(x,s.revenue-used);render();});
+  box.appendChild(div);
+  const eff=document.getElementById("eff-"+id); if(eff) eff.textContent=yen(s.alloc[id]);
+ });
+}
+function allocateAllEvenly(){
+ const left=s.revenue;
+ categories.forEach(([id])=>s.alloc[id]=left/categories.length);
+ render();addLog("税収を9分野へ均等配分しました。");
+}
+function clearAllocations(){categories.forEach(([id])=>s.alloc[id]=0);render();addLog("予算配分をリセットしました。");}
+function showPage(n){
+ document.getElementById("page1").style.display=n===1?"block":"none";
+ document.getElementById("page2").style.display=n===2?"block":"none";
+ document.getElementById("tab1").classList.toggle("active",n===1);
+ document.getElementById("tab2").classList.toggle("active",n===2);
+ render();
+}
+function addLog(t){const p=document.createElement("p");p.textContent=t;document.getElementById("log").prepend(p);}
+function openFeedback(){
+ const saved=localStorage.getItem("taxGameFeedback")||"";
+ document.getElementById("feedbackText").value=saved;
+ document.getElementById("feedbackSaved").style.display="none";
+ document.getElementById("feedbackModal").style.display="flex";
+ document.getElementById("feedbackText").focus();
+}
+function closeFeedback(){document.getElementById("feedbackModal").style.display="none";}
+function saveFeedback(){
+ localStorage.setItem("taxGameFeedback",document.getElementById("feedbackText").value);
+ document.getElementById("feedbackSaved").style.display="block";
+}
+function sendFeedback(){
+ const text=document.getElementById("feedbackText").value.trim();
+ if(!text){
+   alert("感想を入力してください。");
+   return;
+ }
+ localStorage.setItem("taxGameFeedback",text);
+ const subject=encodeURIComponent("「あなたが政治家」ゲームへの感想");
+ const body=encodeURIComponent("ゲームから届いた感想です。\n\n"+text);
+ window.location.href="mailto:ugimiya.mattya@gmail.com?subject="+subject+"&body="+body;
+} 
+document.getElementById("endRollModal").addEventListener("click",e=>{if(e.target.id==="endRollModal")closeEndRoll();});
+document.getElementById("feedbackModal").addEventListener("click",e=>{if(e.target.id==="feedbackModal")closeFeedback();});
+function resetGame(){
+ s={day:1,revenue:0,support:60,economy:70,service:60,happiness:60,trust:60,currentNews:null,electionResult:null,foodTax:0,incomeTax:0,specialTax:0,tourismTax:0,otherTax:0,alloc:{}};
+ categories.forEach(x=>s.alloc[x[0]]=0);
+ document.getElementById("consumption").value=10;document.getElementById("income").value=10;document.getElementById("corporate").value=20;
+ document.getElementById("politician").value=0;document.getElementById("visitor").value=1000;
+ syncLabels();render();addLog("ゲームをリセットしました。");
+}
+syncLabels();render();
+</script>
+</body>
+</html>
